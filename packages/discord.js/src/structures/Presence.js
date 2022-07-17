@@ -11,6 +11,10 @@ const { flatten } = require('../util/Util');
  * @property {string} [partyId] Id of the party represented in activity
  * @property {MessageActivityType} type Type of activity sent
  */
+/**
+ * @external MessageActivityType
+ * @see {@link https://discord-api-types.dev/api/discord-api-types-v9/enum/MessageActivityType}
+ */
 
 /**
  * The status of this presence:
@@ -137,11 +141,25 @@ class Presence extends Base {
 }
 
 /**
+ * The platform of this activity:
+ * * **`desktop`**
+ * * **`samsung`** - playing on Samsung Galaxy
+ * * **`xbox`** - playing on Xbox Live
+ * @typedef {string} ActivityPlatform
+ */
+
+/**
  * Represents an activity that is part of a user's presence.
  */
 class Activity {
   constructor(presence, data) {
     Object.defineProperty(this, 'presence', { value: presence });
+
+    /**
+     * The activity's id
+     * @type {string}
+     */
+    this.id = data.id;
 
     /**
      * The activity's name
@@ -192,10 +210,22 @@ class Activity {
      */
     this.timestamps = data.timestamps
       ? {
-          start: data.timestamps.start ? new Date(Number(data.timestamps.start)) : null,
-          end: data.timestamps.end ? new Date(Number(data.timestamps.end)) : null,
-        }
+        start: data.timestamps.start ? new Date(Number(data.timestamps.start)) : null,
+        end: data.timestamps.end ? new Date(Number(data.timestamps.end)) : null,
+      }
       : null;
+
+    /**
+     * The Spotify song's id
+     * @type {?string}
+     */
+    this.syncId = data.sync_id ?? null;
+
+    /**
+     * The platform the game is being played on
+     * @type {?ActivityPlatform}
+     */
+    this.platform = data.platform ?? null;
 
     /**
      * Represents a party of an activity
@@ -229,6 +259,12 @@ class Activity {
     this.emoji = data.emoji ? new Emoji(presence.client, data.emoji) : null;
 
     /**
+     * The game's or Spotify session's id
+     * @type {?string}
+     */
+    this.sessionId = data.session_id ?? null;
+
+    /**
      * The labels of the buttons of this rich presence
      * @type {string[]}
      */
@@ -238,7 +274,7 @@ class Activity {
      * Creation date of the activity
      * @type {number}
      */
-    this.createdTimestamp = Date.parse(data.created_at);
+    this.createdTimestamp = new Date.parse(data.created_at);
   }
 
   /**
@@ -329,7 +365,7 @@ class RichPresenceAssets {
       }
     }
 
-    return this.activity.presence.client.rest.cdn.appAsset(this.activity.applicationId, this.smallImage, options);
+    return this.activity.presence.client.rest.cdn.appAsset(this.activity.applicationId, this.largeImage, options);
   }
 
   /**
@@ -344,6 +380,10 @@ class RichPresenceAssets {
       switch (platform) {
         case 'mp':
           return `https://media.discordapp.net/${id}`;
+        case 'spotify':
+          return `https://i.scdn.co/image/${id}`;
+        case 'twitch':
+          return `https://static-cdn.jtvnw.net/previews-ttv/live_user_${id}.png`;
         default:
           return null;
       }
